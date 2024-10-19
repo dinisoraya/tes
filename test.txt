@@ -4,3 +4,4 @@
 4. database-model
 5. read-data
 6. upload-file
+7. update-delete
