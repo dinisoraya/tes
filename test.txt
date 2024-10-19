@@ -5,3 +5,4 @@
 5. read-data
 6. upload-file
 7. update-delete
+8. storage-file
