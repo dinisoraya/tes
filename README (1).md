@@ -16,6 +16,13 @@ Stored procedure bertindak seperti SOP internal yang menetapkan alur eksekusi be
 
 Beberapa prosedur penting yang digunakan:
 * **deposit_money(p_transaction_id, p_to_account, p_amount)**: Menambah saldo akun pengguna serta mencatat detail transaksi setoran.
+  ```php
+  $stmt = $this->conn->prepare("CALL deposit_money(?, ?, ?)");
+            $stmt->execute([
+                $txId,
+                $toAccount['account_number'],
+                $amount
+  ```
 * **transfer_money(p_transaction_id, p_from_account, p_to_account, p_amount)**: Memastikan saldo pengirim cukup, memperbarui saldo kedua pihak, dan mencatat detail transaksi.
 * **get_transaction_history(account)**: Mengambil daftar riwayat transaksi akun pengguna.
 
