@@ -19,27 +19,29 @@ Beberapa procedure penting yang digunakan:
   ```php
   // Call the deposit_money stored procedure
   $stmt = $this->conn->prepare("CALL deposit_money(?, ?, ?)");
-            $stmt->execute([
-                $txId,
-                $toAccount['account_number'],
-                $amount
+  $stmt->execute([
+      $txId,
+      $toAccount['account_number'],
+      $amount
+  ]);
   ```
 * **```transfer_money(p_transaction_id, p_from_account, p_to_account, p_amount)```**: Memastikan saldo pengirim cukup, memperbarui saldo kedua pihak, dan mencatat detail transaksi.
   ```php
   // Call the transfer_money stored procedure
-            $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
-            $stmt->execute([
-                $txId,
-                $fromAccount['account_number'],
-                $toAccountNumber,
-                $amount
+  $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
+  $stmt->execute([
+      $txId,
+      $fromAccount['account_number'],
+      $toAccountNumber,
+      $amount
+  ]);
   ```
 * **```get_transaction_history(account)```**: Mengambil daftar riwayat transaksi akun pengguna.
   ```php
   // Call the get_transaction_history stored procedure
-        $stmt = $this->conn->prepare("CALL get_transaction_history(?)");
-        $stmt->execute([$accountNumber]);
-        $raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  $stmt = $this->conn->prepare("CALL get_transaction_history(?)");
+  $stmt->execute([$accountNumber]);
+  $raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
   ```
 Dengan menyimpan proses-proses ini di sisi database, sistem menjaga integritas data di level paling dasar, terlepas dari cara aplikasi mengaksesnya.
 
@@ -52,12 +54,12 @@ Trigger `validate_transaction` otomatis aktif pada procedure berikut:
 * ```transfer_money```
 ```sql
 INSERT INTO transactions (transaction_id, from_account, to_account, amount)
-    VALUES (p_transaction_id, p_from_account, p_to_account, p_amount);
+VALUES (p_transaction_id, p_from_account, p_to_account, p_amount);
 ```
 * ```deposit_money```
 ```sql
 INSERT INTO transactions (transaction_id, from_account, to_account, amount)
-    VALUES (p_transaction_id, 'Cash Deposit ATM', p_to_account, p_amount);
+VALUES (p_transaction_id, 'Cash Deposit ATM', p_to_account, p_amount);
 ```
 
 Beberapa peran trigger di sistem ini:
@@ -155,8 +157,8 @@ Fungsi ini dipanggil baik dari aplikasi maupun dari procedure yang ada di databa
   ``App/Models/Account.php``
   ```php
   $stmt = $this->conn->prepare("SELECT get_balance(?) AS balance");
-        $stmt->execute([$accountNumber]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+  $stmt->execute([$accountNumber]);
+  $result = $stmt->fetch(PDO::FETCH_ASSOC);
   ```
 * Procedure ```transfer_money```
   ```sql
