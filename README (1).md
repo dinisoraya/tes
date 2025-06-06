@@ -154,6 +154,7 @@ Contohnya, fungsi  `get_balance(account)` mengembalikan saldo terkini dari sebua
 
 Fungsi ini dipanggil baik dari aplikasi maupun dari procedure yang ada di database. Dengan begitu, logika pembacaan saldo tetap terpusat dan konsisten, tanpa perlu duplikasi kode atau resiko ketidaksesuaian antara sistem aplikasi dan database.
 * Aplikasi
+  
   ``App/Models/Account.php``
   ```php
   $stmt = $this->conn->prepare("SELECT get_balance(?) AS balance");
