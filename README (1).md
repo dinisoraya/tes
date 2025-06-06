@@ -167,6 +167,7 @@ Penggunaan function seperti ini mencerminkan praktik pemisahan logika bisnis di 
 
 ### 🔄 Backup Otomatis
 Untuk menjaga ketersediaan dan keamanan data, sistem dilengkapi fitur backup otomatis menggunakan `mysqldump`dan task scheduler. Backup dilakukan secara berkala dan disimpan dengan nama file yang mencakup timestamp, sehingga mudah ditelusuri. Semua file disimpan di direktori `storage/backups`.
+`backup.php`
 ```php
 <?php
 require_once __DIR__ . '/init.php';
