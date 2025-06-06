@@ -15,7 +15,7 @@ Stored procedure bertindak seperti SOP internal yang menetapkan alur eksekusi be
 ![Procedure](assets/img/procedure.png)
 
 Beberapa procedure penting yang digunakan:
-* ```deposit_money(p_transaction_id, p_to_account, p_amount)```: Menambah saldo akun pengguna serta mencatat detail transaksi setoran.
+* **```deposit_money(p_transaction_id, p_to_account, p_amount)```**: Menambah saldo akun pengguna serta mencatat detail transaksi setoran.
   ```php
   // Call the deposit_money stored procedure
   $stmt = $this->conn->prepare("CALL deposit_money(?, ?, ?)");
@@ -24,7 +24,7 @@ Beberapa procedure penting yang digunakan:
                 $toAccount['account_number'],
                 $amount
   ```
-* ```transfer_money(p_transaction_id, p_from_account, p_to_account, p_amount)```: Memastikan saldo pengirim cukup, memperbarui saldo kedua pihak, dan mencatat detail transaksi.
+* **```transfer_money(p_transaction_id, p_from_account, p_to_account, p_amount)```**: Memastikan saldo pengirim cukup, memperbarui saldo kedua pihak, dan mencatat detail transaksi.
   ```php
   // Call the transfer_money stored procedure
             $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
@@ -34,7 +34,7 @@ Beberapa procedure penting yang digunakan:
                 $toAccountNumber,
                 $amount
   ```
-* ```get_transaction_history(account)```: Mengambil daftar riwayat transaksi akun pengguna.
+* **```get_transaction_history(account)```**: Mengambil daftar riwayat transaksi akun pengguna.
   ```php
   // Call the get_transaction_history stored procedure
         $stmt = $this->conn->prepare("CALL get_transaction_history(?)");
