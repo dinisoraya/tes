@@ -10,12 +10,12 @@ Proyek ini merupakan sistem perbankan sederhana yang dibangun menggunakan PHP da
 Peran  **stored procedure**, **trigger**, **transaction**, dan **function** dalam proyek ini dirancang khusus untuk kebutuhan sistem **pdtbank**. Penerapannya bisa berbeda pada sistem lain, tergantung arsitektur dan kebutuhan masing-masing sistem.
 
 ### 🧠 Stored Procedure 
-Stored procedure bertindak seperti SOP internal yang menetapkan alur eksekusi berbagai operasi penting di sistem perbankan. Prosedur-prosedur ini disimpan langsung di lapisan database, sehingga dapat menjamin konsistensi, efisiensi, dan keamanan eksekusi, terutama dalam sistem terdistribusi atau multi-user.
+Stored procedure bertindak seperti SOP internal yang menetapkan alur eksekusi berbagai operasi penting di sistem perbankan. Procedure ini disimpan langsung di lapisan database, sehingga dapat menjamin konsistensi, efisiensi, dan keamanan eksekusi, terutama dalam sistem terdistribusi atau multi-user.
 
 ![Procedure](assets/img/procedure.png)
 
 Beberapa procedure penting yang digunakan:
-* **deposit_money(p_transaction_id, p_to_account, p_amount)**: Menambah saldo akun pengguna serta mencatat detail transaksi setoran.
+* ```deposit_money(p_transaction_id, p_to_account, p_amount)```: Menambah saldo akun pengguna serta mencatat detail transaksi setoran.
   ```php
   // Call the deposit_money stored procedure
   $stmt = $this->conn->prepare("CALL deposit_money(?, ?, ?)");
@@ -24,7 +24,7 @@ Beberapa procedure penting yang digunakan:
                 $toAccount['account_number'],
                 $amount
   ```
-* **transfer_money(p_transaction_id, p_from_account, p_to_account, p_amount)**: Memastikan saldo pengirim cukup, memperbarui saldo kedua pihak, dan mencatat detail transaksi.
+* ```transfer_money(p_transaction_id, p_from_account, p_to_account, p_amount)```: Memastikan saldo pengirim cukup, memperbarui saldo kedua pihak, dan mencatat detail transaksi.
   ```php
   // Call the transfer_money stored procedure
             $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
@@ -34,7 +34,7 @@ Beberapa procedure penting yang digunakan:
                 $toAccountNumber,
                 $amount
   ```
-* **get_transaction_history(account)**: Mengambil daftar riwayat transaksi akun pengguna.
+* ```get_transaction_history(account)```: Mengambil daftar riwayat transaksi akun pengguna.
   ```php
   // Call the get_transaction_history stored procedure
         $stmt = $this->conn->prepare("CALL get_transaction_history(?)");
@@ -48,12 +48,13 @@ Trigger `validate_transaction` berfungsi sebagai sistem pengaman otomatis yang a
 
 ![Trigger](assets/img/trigger.png)
 
-* Trigger otomatis aktif di procedure transfer_money
+Trigger `validate_transaction` otomatis aktif pada procedure berikut:
+* ```transfer_money```
 ```sql
 INSERT INTO transactions (transaction_id, from_account, to_account, amount)
     VALUES (p_transaction_id, p_from_account, p_to_account, p_amount);
 ```
-* Trigger otomatis aktif di procedure deposit_money
+* ```deposit_money```
 ```sql
 INSERT INTO transactions (transaction_id, from_account, to_account, amount)
     VALUES (p_transaction_id, 'Cash Deposit ATM', p_to_account, p_amount);
@@ -69,94 +70,93 @@ Dengan adanya trigger di lapisan database, validasi tetap dijalankan secara otom
 ### 🔄 Transaction (Transaksi)
 Dalam sistem perbankan, sebuah transaksi seperti transfer atau pembukaan rekening tidak dianggap berhasil jika hanya sebagian prosesnya yang selesai. Semua langkah harus dijalankan hingga tuntas — jika salah satu gagal, seluruh proses dibatalkan. Prinsip ini diwujudkan melalui penggunaan `beginTransaction()` dan `commit()` di PHP.
 
-Contohnya, pada proses transfer dan deposit, sistem akan memulai transaksi, menjalankan prosedur penyimpanan (stored procedure), lalu meng-commit perubahan jika berhasil. Namun, jika ditemukan masalah — seperti saldo tidak mencukupi atau akun tidak ditemukan — maka seluruh proses dibatalkan menggunakan `rollback()`. Hal ini mencegah perubahan data yang parsial, seperti saldo yang terpotong padahal transaksi tidak sah.
-
-* Transfer
+Contohnya, pada proses transfer dan deposit, sistem akan memulai transaksi, menjalankan procedure penyimpanan (stored procedure), lalu meng-commit perubahan jika berhasil. Namun, jika ditemukan masalah — seperti saldo tidak mencukupi atau akun tidak ditemukan — maka seluruh proses dibatalkan menggunakan `rollback()`. Hal ini mencegah perubahan data yang parsial, seperti saldo yang terpotong padahal transaksi tidak sah.
+```App\Models\Transaction.php```
+* Implementasi transaction untuk procedure ```deposit_money```
+  
   ```php
   try {
-            // Start a transaction
-            // This is important to ensure that the transfer is atomic
-            $this->conn->beginTransaction();
-            // Call the transfer_money stored procedure
-            $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
-            $stmt->execute([
-                $txId,
-                $fromAccount['account_number'],
-                $toAccountNumber,
-                $amount
-            ]);
+      // Start a transaction
+      // This is important to ensure that the deposit is atomic
+      $this->conn->beginTransaction();
+      // Call the deposit_money stored procedure
+      $stmt = $this->conn->prepare("CALL deposit_money(?, ?, ?)");
+      $stmt->execute([
+          $txId,
+          $toAccount['account_number'],
+          $amount
+      ]);
 
-            $this->conn->commit();
-        } catch (PDOException $e) {
-            $this->conn->rollBack();
-            $errorInfo = $e->errorInfo ?? [];
-            $message = $errorInfo[2] ?? $e->getMessage();
+      $this->conn->commit();
+  } catch (PDOException $e) {
+      $this->conn->rollBack();
+      $errorInfo = $e->errorInfo ?? [];
+      $message = $errorInfo[2] ?? $e->getMessage();
 
-            throw new Exception("Transfer failed: SQLSTATE[{$errorInfo[0]}]: {$errorInfo[1]} {$message}");
+      throw new Exception("Deposit failed: SQLSTATE[{$errorInfo[0]}]: {$errorInfo[1]} {$message}");
         }
-  ```
-* Deposit
+* Implementasi transaction untuk procedure ```transfer_money```
   ```php
   try {
-            // Start a transaction
-            // This is important to ensure that the transfer is atomic
-            $this->conn->beginTransaction();
-            // Call the transfer_money stored procedure
-            $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
-            $stmt->execute([
-                $txId,
-                $fromAccount['account_number'],
-                $toAccountNumber,
-                $amount
-            ]);
+      // Start a transaction
+      // This is important to ensure that the transfer is atomic
+      $this->conn->beginTransaction();
+      // Call the transfer_money stored procedure
+      $stmt = $this->conn->prepare("CALL transfer_money(?, ?, ?, ?)");
+      $stmt->execute([
+          $txId,
+          $fromAccount['account_number'],
+          $toAccountNumber,
+          $amount
+      ]);
 
-            $this->conn->commit();
-        } catch (PDOException $e) {
-            $this->conn->rollBack();
-            $errorInfo = $e->errorInfo ?? [];
-            $message = $errorInfo[2] ?? $e->getMessage();
+      $this->conn->commit();
+  } catch (PDOException $e) {
+      $this->conn->rollBack();
+      $errorInfo = $e->errorInfo ?? [];
+      $message = $errorInfo[2] ?? $e->getMessage();
 
-            throw new Exception("Transfer failed: SQLSTATE[{$errorInfo[0]}]: {$errorInfo[1]} {$message}");
-        }
+      throw new Exception("Transfer failed: SQLSTATE[{$errorInfo[0]}]: {$errorInfo[1]} {$message}");
+    }
   ```
 
 Demikian pula saat user melakukan registrasi, sistem tidak hanya menyimpan data user, tetapi juga membuat akun bank sekaligus. Proses ini dijalankan dalam satu transaksi agar semua langkah saling bergantung dan terjamin konsistensinya.
+```App\Models\User.php```
 ```php
-    try {
-            // Start a transaction
-            // This is important to ensure that the registration is atomic
-            $this->conn->beginTransaction();
+try {
+    // Start a transaction
+    // This is important to ensure that the registration is atomic
+    $this->conn->beginTransaction();
 
-            $stmt = $this->conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-            $stmt->execute([$username, $hashedPassword]);
-            $userId = $this->conn->lastInsertId();
+    $stmt = $this->conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+    $stmt->execute([$username, $hashedPassword]);
+    $userId = $this->conn->lastInsertId();
 
-            $accountNumber = $this->generateUniqueAccountNumber();
-            $stmtAcc = $this->conn->prepare("INSERT INTO accounts (user_id, account_number, balance) VALUES (?, ?, 0)");
-            $stmtAcc->execute([$userId, $accountNumber]);
+    $accountNumber = $this->generateUniqueAccountNumber();
+    $stmtAcc = $this->conn->prepare("INSERT INTO accounts (user_id, account_number, balance) VALUES (?, ?, 0)");
+    $stmtAcc->execute([$userId, $accountNumber]);
 
-            $this->conn->commit();
-            return true;
-        } catch (Exception $e) {
-            $this->conn->rollBack();
-            throw new Exception("Registration failed due to database error.");
-        }
+    $this->conn->commit();
+    return true;
+} catch (Exception $e) {
+    $this->conn->rollBack();
+    throw new Exception("Registration failed due to database error.");
+}
 ```
-
-
 ### 📺 Function 
 Function digunakan untuk mengambil informasi tanpa mengubah data. Seperti layar monitor: hanya menampilkan data, tidak mengubah apapun.
 
 Contohnya, fungsi  `get_balance(account)` mengembalikan saldo terkini dari sebuah akun. 
 
-Fungsi ini dipanggil baik dari aplikasi maupun dari prosedur yang ada di database. Dengan begitu, logika pembacaan saldo tetap terpusat dan konsisten, tanpa perlu duplikasi kode atau resiko ketidaksesuaian antara sistem aplikasi dan database.
-* aplikasi
+Fungsi ini dipanggil baik dari aplikasi maupun dari procedure yang ada di database. Dengan begitu, logika pembacaan saldo tetap terpusat dan konsisten, tanpa perlu duplikasi kode atau resiko ketidaksesuaian antara sistem aplikasi dan database.
+* Aplikasi
+  ``App/Models/Account.php``
   ```php
   $stmt = $this->conn->prepare("SELECT get_balance(?) AS balance");
         $stmt->execute([$accountNumber]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
   ```
-* procedure transfer_money
+* Procedure ```transfer_money```
   ```sql
   SET v_balance = get_balance(p_from_account);
   ```
@@ -181,7 +181,7 @@ exec($command);
 
 ## 🧩 Relevansi Proyek dengan Pemrosesan Data Terdistribusi
 Sistem ini dirancang dengan memperhatikan prinsip-prinsip dasar pemrosesan data terdistribusi:
-* **Konsistensi**: Semua transaksi dieksekusi dengan prosedur dan validasi terpusat di database.
+* **Konsistensi**: Semua transaksi dieksekusi dengan procedure dan validasi terpusat di database.
 * **Reliabilitas**: Trigger dan transaction memastikan sistem tetap aman meskipun ada error atau interupsi.
 * **Integritas**: Dengan logika disimpan di dalam database, sistem tetap valid walaupun dipanggil dari banyak sumber (web, API, dsb).
 
