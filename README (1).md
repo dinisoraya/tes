@@ -71,6 +71,7 @@ Dengan adanya trigger di lapisan database, validasi tetap dijalankan secara otom
 Dalam sistem perbankan, sebuah transaksi seperti transfer atau pembukaan rekening tidak dianggap berhasil jika hanya sebagian prosesnya yang selesai. Semua langkah harus dijalankan hingga tuntas — jika salah satu gagal, seluruh proses dibatalkan. Prinsip ini diwujudkan melalui penggunaan `beginTransaction()` dan `commit()` di PHP.
 
 Contohnya, pada proses transfer dan deposit, sistem akan memulai transaksi, menjalankan procedure penyimpanan (stored procedure), lalu meng-commit perubahan jika berhasil. Namun, jika ditemukan masalah — seperti saldo tidak mencukupi atau akun tidak ditemukan — maka seluruh proses dibatalkan menggunakan `rollback()`. Hal ini mencegah perubahan data yang parsial, seperti saldo yang terpotong padahal transaksi tidak sah.
+
 ```App\Models\Transaction.php```
 * Implementasi transaction untuk procedure ```deposit_money```
   
@@ -121,6 +122,7 @@ Contohnya, pada proses transfer dan deposit, sistem akan memulai transaksi, menj
   ```
 
 Demikian pula saat user melakukan registrasi, sistem tidak hanya menyimpan data user, tetapi juga membuat akun bank sekaligus. Proses ini dijalankan dalam satu transaksi agar semua langkah saling bergantung dan terjamin konsistensinya.
+
 ```App\Models\User.php```
 ```php
 try {
